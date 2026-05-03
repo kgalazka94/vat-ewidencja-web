@@ -6,39 +6,43 @@ body {
 .a4 {
     width: 210mm;
     height: 297mm;
-    padding: 10mm;
-    margin: auto;
+    padding: 8mm;
     background: white;
+    margin: auto;
+    overflow: hidden;
 }
 
 h2 {
     text-align: center;
-    margin-bottom: 10px;
-}
-
-.top {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 12px;
-}
-
-.bold {
-    font-weight: bold;
+    margin: 5px 0;
+    font-size: 14px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    table-layout: fixed;
+    font-size: 10px;
 }
 
 th, td {
     border: 1px solid black;
-    padding: 3px;
+    padding: 2px;
     text-align: center;
 }
 
-th {
-    background: #eee;
+th:nth-child(1), td:nth-child(1) { width: 5%; }
+th:nth-child(2), td:nth-child(2) { width: 20%; }
+th:nth-child(3), td:nth-child(3) { width: 20%; }
+th:nth-child(4), td:nth-child(4) { width: 40%; }
+th:nth-child(5), td:nth-child(5) { width: 15%; }
+
+td[contenteditable] {
+    outline: none;
+}
+
+#summary {
+    margin: 5px 0;
+    font-size: 11px;
+    font-weight: bold;
 }
