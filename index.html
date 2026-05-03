@@ -7,7 +7,7 @@
 </head>
 <body>
 
-<h1>Ewidencja przebiegu pojazdu VAT</h1>
+<h2>Ewidencja przebiegu pojazdu VAT</h2>
 
 <div class="form">
     <input type="month" id="month">
@@ -15,17 +15,22 @@
     <input type="text" id="plate" placeholder="Rejestracja">
     <input type="number" id="startKm" placeholder="Stan początkowy">
     <input type="number" id="kmPerDay" value="54">
-    <label><input type="checkbox" id="skipWeekends" checked> Pomijaj weekendy</label>
+
+    <label>
+        <input type="checkbox" id="skipWeekends" checked>
+        Pomijaj weekendy
+    </label>
 
     <button onclick="generate()">Generuj</button>
     <button onclick="downloadPDF()">PDF</button>
 </div>
 
+<div id="summary"></div>
 <div id="pages"></div>
 
 <datalist id="routesList"></datalist>
 
-<script src="https://cdn.jsdelivr.net/npm/html2pdf.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="app.js"></script>
 
 </body>

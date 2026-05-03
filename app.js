@@ -1,31 +1,38 @@
 const ROWS_PER_PAGE = 22;
 let routes = [];
 
+const monthEl = document.getElementById("month");
+const nameEl = document.getElementById("name");
+const plateEl = document.getElementById("plate");
+const startKmEl = document.getElementById("startKm");
+const kmPerDayEl = document.getElementById("kmPerDay");
+const skipWeekendsEl = document.getElementById("skipWeekends");
+
+// ===== ROUTES =====
 fetch("routes.csv")
-    .then(res => res.text())
+    .then(r => r.text())
     .then(text => {
-        routes = text.split("\n").filter(r => r.trim());
+        routes = text.split("\n").map(line => {
+            const [name, km] = line.split(",");
+            return { name, km: parseFloat(km) };
+        });
+
         const list = document.getElementById("routesList");
+
         routes.forEach(r => {
             const opt = document.createElement("option");
-            opt.value = r;
+            opt.value = r.name;
             list.appendChild(opt);
         });
     });
 
+// ===== GENERATE =====
 function generate() {
-    const month = monthEl.value;
-    const name = nameEl.value;
-    const plate = plateEl.value;
-    const startKm = parseFloat(startKmEl.value);
-    const kmPerDay = parseFloat(kmPerDayEl.value);
-    const skipWeekends = skipWeekendsEl.checked;
-
-    const [year, m] = month.split("-");
+    const [year, m] = monthEl.value.split("-");
     const days = new Date(year, m, 0).getDate();
 
-    const pagesDiv = document.getElementById("pages");
-    pagesDiv.innerHTML = "";
+    const container = document.getElementById("pages");
+    container.innerHTML = "";
 
     let entries = [];
 
@@ -33,37 +40,48 @@ function generate() {
         const date = new Date(year, m - 1, d);
         const day = date.getDay();
 
-        if (skipWeekends && (day === 0 || day === 6)) continue;
+        if (skipWeekendsEl.checked && (day === 0 || day === 6)) continue;
 
         entries.push({
             lp: entries.length + 1,
             date: `${String(d).padStart(2, "0")}-${m}-${year}`,
-            km: kmPerDay
+            km: parseFloat(kmPerDayEl.value)
         });
     }
 
-    let carry = 0;
+    render(entries);
+}
+
+// ===== RENDER =====
+function render(entries) {
+    const pagesDiv = document.getElementById("pages");
+    pagesDiv.innerHTML = "";
+
     let pageNumber = 1;
+    let carry = 0;
 
     for (let i = 0; i < entries.length; i += ROWS_PER_PAGE) {
         const chunk = entries.slice(i, i + ROWS_PER_PAGE);
 
         let pageKm = 0;
 
-        let rows = chunk.map(e => {
+        const rows = chunk.map((e, idx) => {
             pageKm += e.km;
 
             return `
       <tr>
         <td>${e.lp}</td>
-        <td>${e.date}</td>
+        <td contenteditable>${e.date}</td>
         <td contenteditable>przejazd</td>
         <td>
-          <input list="routesList" value="${routes[0] || ''}">
+          <input list="routesList" value="${routes[0]?.name || ''}" onchange="routeChanged(this)">
         </td>
         <td contenteditable oninput="recalc()">${e.km}</td>
-      </tr>
-      `;
+        <td>
+          <button onclick="addRow(this)">+</button>
+          <button onclick="removeRow(this)">-</button>
+        </td>
+      </tr>`;
         }).join("");
 
         const page = document.createElement("div");
@@ -71,14 +89,14 @@ function generate() {
 
         page.innerHTML = `
       <div class="header">
-        <b>Ewidencja przebiegu pojazdu VAT</b><br>
-        ${name} | ${plate} | ${month}<br>
+        <b>Ewidencja VAT</b><br>
+        ${nameEl.value} | ${plateEl.value}<br>
         Strona ${pageNumber}
       </div>
 
       <table>
         <tr>
-          <th>Lp</th><th>Data</th><th>Cel</th><th>Trasa</th><th>Km</th>
+          <th>Lp</th><th>Data</th><th>Cel</th><th>Trasa</th><th>Km</th><th>Akcje</th>
         </tr>
         ${rows}
       </table>
@@ -95,62 +113,64 @@ function generate() {
         pagesDiv.appendChild(page);
     }
 
-    updateSummary(startKm);
+    recalc();
 }
 
+// ===== ADD / REMOVE =====
+function addRow(btn) {
+    const row = btn.closest("tr");
+
+    const newRow = row.cloneNode(true);
+    row.after(newRow);
+
+    recalc();
+}
+
+function removeRow(btn) {
+    const row = btn.closest("tr");
+    row.remove();
+
+    recalc();
+}
+
+// ===== ROUTE CHANGE =====
+function routeChanged(input) {
+    const val = input.value;
+    const route = routes.find(r => r.name === val);
+
+    if (!route) return;
+
+    const row = input.closest("tr");
+    row.children[4].innerText = route.km;
+
+    recalc();
+}
+
+// ===== RECALC =====
 function recalc() {
     const kms = document.querySelectorAll("td:nth-child(5)");
     let total = 0;
-    kms.forEach(k => total += parseFloat(k.innerText) || 0);
 
-    const startKm = parseFloat(startKmEl.value);
-    updateSummary(startKm, total);
-}
+    kms.forEach(c => total += parseFloat(c.innerText) || 0);
 
-function updateSummary(start, totalOverride = null) {
-    let total = totalOverride ?? 0;
-
-    if (!totalOverride) {
-        document.querySelectorAll("td:nth-child(5)").forEach(c => {
-            total += parseFloat(c.innerText) || 0;
-        });
-    }
-
+    const start = parseFloat(startKmEl.value) || 0;
     const end = start + total;
 
-    let el = document.getElementById("summary");
-    if (!el) {
-        el = document.createElement("div");
-        el.id = "summary";
-        document.body.appendChild(el);
-    }
-
-    el.innerHTML = `<b>Start:</b> ${start} | <b>Koniec:</b> ${end} | <b>Suma:</b> ${total}`;
+    document.getElementById("summary").innerHTML =
+        `<b>Start:</b> ${start} | <b>Koniec:</b> ${end} | <b>Suma:</b> ${total}`;
 }
 
+// ===== PDF =====
 function downloadPDF() {
     html2pdf().set({
         margin: 5,
         filename: "ewidencja.pdf",
-        jsPDF: { format: "a4" }
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4" }
     }).from(document.getElementById("pages")).save();
 }
 
-// localStorage
-const monthEl = document.getElementById("month");
-const nameEl = document.getElementById("name");
-const plateEl = document.getElementById("plate");
-const startKmEl = document.getElementById("startKm");
-const kmPerDayEl = document.getElementById("kmPerDay");
-const skipWeekendsEl = document.getElementById("skipWeekends");
-
-window.onload = () => {
-    const data = JSON.parse(localStorage.getItem("vat"));
-    if (data) Object.assign({
-        monthEl, nameEl, plateEl, startKmEl, kmPerDayEl
-    }, data);
-};
-
+// ===== SAVE =====
 setInterval(() => {
     localStorage.setItem("vat", JSON.stringify({
         month: monthEl.value,
@@ -160,3 +180,14 @@ setInterval(() => {
         kmPerDay: kmPerDayEl.value
     }));
 }, 2000);
+
+window.onload = () => {
+    const data = JSON.parse(localStorage.getItem("vat"));
+    if (!data) return;
+
+    monthEl.value = data.month;
+    nameEl.value = data.name;
+    plateEl.value = data.plate;
+    startKmEl.value = data.startKm;
+    kmPerDayEl.value = data.kmPerDay;
+};
