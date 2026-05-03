@@ -164,15 +164,22 @@ function removeRow(row) {
 function recalc() {
     let total = 0;
 
-    document.querySelectorAll("td:nth-child(5)").forEach(c=>{
-        total += parseFloat(c.innerText)||0;
+    document.querySelectorAll("td:nth-child(5)").forEach(c => {
+        const val = parseFloat(c.innerText);
+        total += isNaN(val) ? 0 : val;
     });
 
-    const start = parseFloat(startKmEl.value)||0;
+    const start = parseFloat(startKmEl.value) || 0;
     const end = start + total;
 
-    document.querySelectorAll(".footer").forEach(f=>{
-        f.innerHTML += `<br>Stan końcowy: ${end} km`;
+    // usuń stare końcówki (ważne!)
+    document.querySelectorAll(".endKm").forEach(e => e.remove());
+
+    document.querySelectorAll(".footer").forEach(f => {
+        const div = document.createElement("div");
+        div.className = "endKm";
+        div.innerText = `Stan końcowy: ${end} km`;
+        f.appendChild(div);
     });
 }
 
