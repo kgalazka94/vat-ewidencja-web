@@ -1,28 +1,68 @@
-const holidaysPL = [
-    "01-01","06-01","01-05","03-05","15-08","01-11","11-11","25-12","26-12"
-];
+const ROWS_PER_PAGE = 22;
 
-function isHoliday(date) {
-    const d = date.toISOString().slice(5,10);
-    return holidaysPL.includes(d);
+const monthEl = document.getElementById("month");
+const startKmEl = document.getElementById("startKm");
+const nameEl = document.getElementById("name");
+const plateEl = document.getElementById("plate");
+
+function easter(year) {
+    const f = Math.floor;
+    const a = year % 19;
+    const b = f(year / 100);
+    const c = year % 100;
+    const d = f(b / 4);
+    const e = b % 4;
+    const g = f((8 * b + 13) / 25);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const j = f(c / 4);
+    const k = c % 4;
+    const m = (a + 11 * h) / 319;
+    const r = (2 * e + 2 * j - k - h + m + 32) % 7;
+    const n = f((h - m + r + 90) / 25);
+    const p = (h - m + r + n + 19) % 32;
+    return new Date(year, n - 1, p);
+}
+
+function getHolidays(year) {
+    const e = easter(year);
+
+    return [
+        "01-01","06-01","01-05","03-05","15-08","01-11","11-11","25-12","26-12",
+        formatDate(e),
+        formatDate(addDays(e, 1)), // poniedziałek wielkanocny
+        formatDate(addDays(e, 60)) // boże ciało
+    ];
+}
+
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function formatDate(d) {
+    return d.toISOString().slice(5,10);
 }
 
 function generate() {
-    const month = document.getElementById("month").value;
-    const startKm = parseFloat(document.getElementById("startKm").value) || 0;
-    const skipW = document.getElementById("skipWeekends").checked;
-    const skipH = document.getElementById("skipHolidays").checked;
+    const month = monthEl.value;
+    if (!month) return;
 
     const [year, m] = month.split("-");
     const days = new Date(year, m, 0).getDate();
+
+    const holidays = getHolidays(parseInt(year));
+    const skipW = document.getElementById("skipWeekends").checked;
+    const skipH = document.getElementById("skipHolidays").checked;
 
     let entries = [];
 
     for (let d = 1; d <= days; d++) {
         const date = new Date(year, m - 1, d);
+        const key = formatDate(date);
 
         if (skipW && (date.getDay() === 0 || date.getDay() === 6)) continue;
-        if (skipH && isHoliday(date)) continue;
+        if (skipH && holidays.includes(key)) continue;
 
         entries.push({
             date: `${String(d).padStart(2,"0")}-${m}-${year}`,
@@ -30,58 +70,87 @@ function generate() {
         });
     }
 
-    render(entries, startKm);
+    render(entries);
 }
 
-function render(entries, startKm) {
-    let rows = "";
+function render(entries) {
+    const pagesDiv = document.getElementById("pages");
+    pagesDiv.innerHTML = "";
 
-    entries.slice(0,22).forEach((e, i) => {
-        rows += `
-    <tr ondblclick="addRow(this)" oncontextmenu="removeRow(this);return false;">
-      <td></td>
-      <td contenteditable>${e.date}</td>
-      <td contenteditable>przejazd</td>
-      <td contenteditable>biuro - klient - biuro</td>
-      <td contenteditable oninput="recalc()">${e.km}</td>
-    </tr>`;
+    let carry = 0;
+    let totalPages = Math.ceil(entries.length / ROWS_PER_PAGE);
+
+    const monthLabel = new Date(monthEl.value).toLocaleString("pl-PL", {
+        month: "long",
+        year: "numeric"
     });
 
-    document.getElementById("page").innerHTML = `
-  <div class="a4">
+    entries.forEach((_, index) => {
+        if (index % ROWS_PER_PAGE !== 0) return;
 
-    <h2>Ewidencja przebiegu pojazdu VAT</h2>
+        const chunk = entries.slice(index, index + ROWS_PER_PAGE);
 
-    <div id="summary"></div>
+        let pageKm = 0;
+
+        const rows = chunk.map((e, i) => {
+            pageKm += e.km;
+
+            return `
+      <tr ondblclick="addRow(this)" oncontextmenu="removeRow(this);return false;">
+        <td></td>
+        <td contenteditable>${e.date}</td>
+        <td contenteditable>przejazd</td>
+        <td contenteditable>biuro - klient - biuro</td>
+        <td contenteditable oninput="recalc()">${e.km}</td>
+      </tr>`;
+        }).join("");
+
+        const pageNum = Math.floor(index / ROWS_PER_PAGE) + 1;
+
+        const page = document.createElement("div");
+        page.className = "page";
+
+        page.innerHTML = `
+    <div class="header">
+      <b>Ewidencja przebiegu pojazdu VAT</b><br>
+      ${monthLabel}<br>
+      ${nameEl.value} | ${plateEl.value}<br>
+      Strona ${pageNum} z ${totalPages}
+    </div>
 
     <table>
       <thead>
         <tr>
-          <th>Lp</th>
-          <th>Data</th>
-          <th>Cel</th>
-          <th>Trasa</th>
-          <th>Km</th>
+          <th>Lp</th><th>Data</th><th>Cel</th><th>Trasa</th><th>Km</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
 
-  </div>`;
+    <div class="footer">
+      Z przeniesienia: ${carry.toFixed(2)} km<br>
+      Podsumowanie strony: ${(carry + pageKm).toFixed(2)} km
+    </div>
+    `;
+
+        carry += pageKm;
+        pagesDiv.appendChild(page);
+    });
 
     renumber();
-    recalc(startKm);
+    recalc();
 }
 
 function renumber() {
-    document.querySelectorAll("tbody tr").forEach((r,i)=>{
-        r.children[0].innerText = i+1;
+    document.querySelectorAll("tbody").forEach(t => {
+        t.querySelectorAll("tr").forEach((r,i)=>{
+            r.children[0].innerText = i+1;
+        });
     });
 }
 
 function addRow(row) {
-    const newRow = row.cloneNode(true);
-    row.after(newRow);
+    row.after(row.cloneNode(true));
     renumber();
     recalc();
 }
@@ -92,18 +161,19 @@ function removeRow(row) {
     recalc();
 }
 
-function recalc(startOverride) {
+function recalc() {
     let total = 0;
 
     document.querySelectorAll("td:nth-child(5)").forEach(c=>{
         total += parseFloat(c.innerText)||0;
     });
 
-    const start = startOverride ?? parseFloat(document.getElementById("startKm").value)||0;
+    const start = parseFloat(startKmEl.value)||0;
     const end = start + total;
 
-    document.getElementById("summary").innerHTML =
-        `Start: ${start} km | Koniec: ${end} km | Suma: ${total} km`;
+    document.querySelectorAll(".footer").forEach(f=>{
+        f.innerHTML += `<br>Stan końcowy: ${end} km`;
+    });
 }
 
 function downloadPDF() {
@@ -112,5 +182,5 @@ function downloadPDF() {
         filename:"ewidencja.pdf",
         html2canvas:{scale:2},
         jsPDF:{unit:"mm",format:"a4"}
-    }).from(document.querySelector(".a4")).save();
+    }).from(document.getElementById("pages")).save();
 }
