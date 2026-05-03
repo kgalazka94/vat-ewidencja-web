@@ -118,3 +118,19 @@ function recalc() {
     document.getElementById("sumKm").innerText = total;
     document.getElementById("endKmVal").innerText = end;
 }
+
+function downloadPDF() {
+    const element = document.querySelector(".page");
+
+    if (!element) {
+        alert("Najpierw wygeneruj ewidencję");
+        return;
+    }
+
+    html2pdf().set({
+        margin: 5,
+        filename: "ewidencja.pdf",
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    }).from(element).save();
+}
