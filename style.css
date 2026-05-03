@@ -6,23 +6,31 @@ body {
 .page {
     width: 210mm;
     height: 297mm;
-    padding: 8mm;
+    padding: 6mm;
+    margin: auto;
     background: white;
-    margin: 10px auto;
-    page-break-after: always;
+    box-sizing: border-box;
 }
 
-.header {
+.title {
     text-align: center;
-    font-size: 12px;
-    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.header-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-size: 10px;
+    margin-bottom: 4px;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 10px;
+    font-size: 9px;
 }
 
 th, td {
@@ -31,7 +39,17 @@ th, td {
     text-align: center;
 }
 
+th:nth-child(1), td:nth-child(1) { width: 6%; }
+th:nth-child(2), td:nth-child(2) { width: 20%; }
+th:nth-child(3), td:nth-child(3) { width: 20%; }
+th:nth-child(4), td:nth-child(4) { width: 40%; }
+th:nth-child(5), td:nth-child(5) { width: 14%; }
+
+td[contenteditable] {
+    outline: none;
+}
+
 .footer {
-    margin-top: 5px;
+    margin-top: 4px;
     font-size: 10px;
 }
