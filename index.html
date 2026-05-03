@@ -7,28 +7,19 @@
 </head>
 <body>
 
-<h2>Ewidencja przebiegu pojazdu VAT</h2>
-
 <div class="form">
     <input type="month" id="month">
     <input type="text" id="name" placeholder="Imię i nazwisko">
     <input type="text" id="plate" placeholder="Rejestracja">
+    <input type="date" id="startDate">
     <input type="number" id="startKm" placeholder="Stan początkowy">
-    <input type="number" id="kmPerDay" value="54">
-
-    <label>
-        <input type="checkbox" id="skipWeekends" checked>
-        Pomijaj weekendy
-    </label>
-
+    <input type="date" id="endDate">
+    <input type="number" id="endKm" placeholder="Stan końcowy">
     <button onclick="generate()">Generuj</button>
     <button onclick="downloadPDF()">PDF</button>
 </div>
 
-<div id="summary"></div>
-<div id="pages"></div>
-
-<datalist id="routesList"></datalist>
+<div id="page"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="app.js"></script>
